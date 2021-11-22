@@ -31,7 +31,7 @@ public class Producer {
         Integer[] arr = {100, -100};
         kafkaTemplate.send("test", String.valueOf(key), String.valueOf(arr[key]));
 
-        kafkaTemplate.send("test2", String.valueOf(key), String.valueOf(arr[key]));
+//        kafkaTemplate.send("test2", String.valueOf(key), String.valueOf(arr[key]));
     }
 
 }

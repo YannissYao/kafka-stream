@@ -62,7 +62,7 @@ public class KafkaApplication {
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "oasis-stream");
 //        props.put(StreamsConfig.METRICS_SAMPLE_WINDOW_MS_CONFIG, 50);
         props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 5000);//时间窗口
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 //        props.put(StreamsConfig.STATE_DIR_CONFIG, "data");
