@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
-            <version>1.0.2</version>
+            <version>1.0.1</version>
             <exclusions>
                 <exclusion>
                     <artifactId>connect-json</artifactId>
@@ -77,9 +77,6 @@
         </dependency>
 
     </dependencies>
-
-
-
 
 
     <build>

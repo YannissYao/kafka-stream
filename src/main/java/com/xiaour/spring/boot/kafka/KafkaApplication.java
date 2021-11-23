@@ -6,8 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.*;
 import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -18,6 +17,7 @@ import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -61,7 +61,7 @@ public class KafkaApplication {
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "oasis-stream");
 //        props.put(StreamsConfig.METRICS_SAMPLE_WINDOW_MS_CONFIG, 50);
-        props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 5000);//时间窗口
+        props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 10000);//时间窗口
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -74,19 +74,33 @@ public class KafkaApplication {
         StreamsBuilder streamsBuilder = new StreamsBuilder();
         KStream<String, String> stream = streamsBuilder.stream("test");
 
+//        KTable<String, String> sum2 = stream
+//                .groupByKey()
+//                .windowedBy(TimeWindows.of(10l))
+//                .reduce((x, y) -> {
+////                    System.out.println("x: " + x + " " + "y: " + y);
+//
+//                    //aggObj: {changeCount , leaveuids[], joinUids[]}
+//                    Integer sum_s = Integer.valueOf(x) + Integer.valueOf(y);
+////                    System.out.println("sum: " + sum);
+//                    return sum_s.toString();
+//                })
+
 
         KTable<String, String> sum = stream
-                .groupByKey().reduce((x, y) -> {
+                .groupByKey()
+                .reduce((x, y) -> {
 //                    System.out.println("x: " + x + " " + "y: " + y);
-                    //{changeCount , leaveuids[], joinUids[]}
-                    Integer sum_s = Integer.valueOf(x) + Integer.valueOf(y);
+                    //aggObj: {changeCount , leaveuids[], joinUids[]}
+              Integer sum_s = Integer.valueOf(x) + Integer.valueOf(y);
 //            System.out.println("sum: " + sum);
-                    return sum_s.toString();
+              return sum_s.toString();
                 });
 
         //创建一个消费者
         sum.toStream().map((x, y) -> {
 //            System.out.println("K: " + x + "V: " + y);
+
             return new KeyValue<String, String>(x, y.toString());
         }).to("stream-out");
 
