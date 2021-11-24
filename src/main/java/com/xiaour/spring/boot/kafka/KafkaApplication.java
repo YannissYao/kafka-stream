@@ -17,12 +17,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.Properties;
 
 
-@EnableScheduling
+/**
+ * Created by Yannis on 2021/11/24  20:55
+ * /usr/local/Cellar/apache-flink/1.14.0/libexec/bin/flink run -c com.xiaour.spring.boot.kafk.KafkaApplication /Users/Joeysin/IdeaWorkSpace/github/kafka-stream/target/kafka-stream-0.0.1-SNAPSHOT.jar --hostname localhost --port 8088
+ *
+ */
+
 @SpringBootApplication
 public class KafkaApplication {
 
