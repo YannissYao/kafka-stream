@@ -11,7 +11,7 @@ import java.util.Optional;
  * @Description:
  * @Date: 2018/5/22 15:03
  */
-@Component
+//@Component
 public class Consumer {
 
     @KafkaListener(topics = {"test"})
@@ -20,14 +20,11 @@ public class Consumer {
         Optional<?> kafkaMessage = Optional.ofNullable(record.value());
 
         if (kafkaMessage.isPresent()) {
-
             Object message = kafkaMessage.get();
-//            System.out.println("------------->" + record);
-//            System.out.println("----------->" + message);
+            System.out.println("------------->" + record);
+            System.out.println("----------->" + message);
 
         }
-
-
     }
 
     @KafkaListener(topics = {"stream-out"})

@@ -26,7 +26,7 @@ public class SendController {
     }
 
 
-    @Scheduled(fixedRate = 500)
+//    @Scheduled(fixedRate = 500)
     public void send2() {
 
         producer.send();

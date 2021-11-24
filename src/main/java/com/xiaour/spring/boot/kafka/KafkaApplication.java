@@ -1,111 +1,106 @@
 package com.xiaour.spring.boot.kafka;
 
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.*;
-import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
-import org.apache.kafka.streams.kstream.*;
+import com.vip.vjtools.vjkit.mapper.JsonMapper;
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.common.restartstrategy.RestartStrategies;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.streaming.api.CheckpointingMode;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
-import org.springframework.kafka.annotation.EnableKafka;
-import org.springframework.kafka.annotation.EnableKafkaStreams;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Properties;
-
-import static org.apache.kafka.streams.StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG;
 
 
 @EnableScheduling
 @SpringBootApplication
 public class KafkaApplication {
 
-    private static final int MAX_MESSAGE_SIZE = 16 * 1024 * 1024;
 
     public static void main(String[] args) {
         SpringApplication.run(KafkaApplication.class, args);
     }
 
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String kafkaServer;
 
-//    @Bean
-//    public KStream<String, String> kStream(StreamsBuilder streamsBuilder) {
-//        KStream<String, String> stream = streamsBuilder.stream("test");
-//
-//
-//        // 有兴趣可以写个 wordCount
-//        KTable kTable = stream.map((key, value) -> {
-//            return new KeyValue<>(key, value);
-//        }).groupByKey().count();
-//
-//
-//        kTable.toStream().foreach((k, v) -> {
-//            //=======business
-//            System.out.println("K:" + k + "  V:" + v);
-//        });
-//        return stream;
-//    }
+    @Bean
+    public StreamExecutionEnvironment streamExecutionEnvironment() {
+
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        //处理失败后重启策略
+        env.setRestartStrategy(RestartStrategies.fixedDelayRestart(
+                8, // 尝试重启的次数
+                org.apache.flink.api.common.time.Time.seconds(10)) // 间隔
+        );
 
 
-    @Bean(destroyMethod = "close", initMethod = "start")
-    public KafkaStreams kafkaStreams(KafkaProperties kafkaProperties) {
-        final Properties props = new Properties();
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "oasis-stream");
-//        props.put(StreamsConfig.METRICS_SAMPLE_WINDOW_MS_CONFIG, 50);
-        props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 10000);//时间窗口
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-        props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-//        props.put(StreamsConfig.STATE_DIR_CONFIG, "data");
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, JsonNode.class);
-        props.put(DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndContinueExceptionHandler.class);
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        Properties props = new Properties();
+        props.setProperty("bootstrap.servers", kafkaServer);
+        props.setProperty("group.id", "flink-group");
 
-        //stream
-        StreamsBuilder streamsBuilder = new StreamsBuilder();
-        KStream<String, String> stream = streamsBuilder.stream("test");
-
-//        KTable<String, String> sum2 = stream
-//                .groupByKey()
-//                .windowedBy(TimeWindows.of(10l))
-//                .reduce((x, y) -> {
-////                    System.out.println("x: " + x + " " + "y: " + y);
-//
-//                    //aggObj: {changeCount , leaveuids[], joinUids[]}
-//                    Integer sum_s = Integer.valueOf(x) + Integer.valueOf(y);
-////                    System.out.println("sum: " + sum);
-//                    return sum_s.toString();
-//                })
+        //数据源配置，是一个kafka消息的消费者
+        FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<String>("test2", new SimpleStringSchema(), props);
 
 
-        KTable<String, String> sum = stream
-                .groupByKey()
-                .reduce((x, y) -> {
-//                    System.out.println("x: " + x + " " + "y: " + y);
-                    //aggObj: {changeCount , leaveuids[], joinUids[]}
-              Integer sum_s = Integer.valueOf(x) + Integer.valueOf(y);
-//            System.out.println("sum: " + sum);
-              return sum_s.toString();
-                });
+//        consumer.setStartFromEarliest(); // Flink从topic中最初的数据开始消费
+        consumer.setCommitOffsetsOnCheckpoints(true);
+        env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);// 设置模式为exactly-once 默认(this is the default)
+        env.enableCheckpointing(5000);//ms 执行间隔
+        env.getCheckpointConfig().setMinPauseBetweenCheckpoints(500);// 确保检查点之间有进行500 ms的进度
+        env.getCheckpointConfig().setMaxConcurrentCheckpoints(5);// 同一时间只允许进行一个检查点
 
-        //创建一个消费者
-        sum.toStream().map((x, y) -> {
-//            System.out.println("K: " + x + "V: " + y);
+//        AllWindowedStream allWindowedStream = env.addSource(consumer).windowAll(TumblingEventTimeWindows.of(Time.seconds(5)));
 
-            return new KeyValue<String, String>(x, y.toString());
-        }).to("stream-out");
+//        allWindowedStream.sum(0);
 
 
-        KafkaStreams kafkaStreams = new KafkaStreams(streamsBuilder.build(), props);
-        return kafkaStreams;
+        env.addSource(consumer).map(new MapFunction<String, Tuple2<String, Integer>>() {
+            @Override
+            public Tuple2<String, Integer> map(String s) throws Exception {
+                return new Tuple2<>(s, Integer.valueOf(s));
+            }
+        }).keyBy(t -> t.f0)
+                .window(TumblingEventTimeWindows.of(Time.seconds(1)))//窗口大小
+                .reduce(new ReduceFunction<Tuple2<String, Integer>>() {
+                    @Override
+                    public Tuple2<String, Integer> reduce(Tuple2<String, Integer> t2, Tuple2<String, Integer> t1) throws Exception {
+                        System.out.println(t1.f0 + "   " + (t1.f1 + t2.f1));
+                        return new Tuple2<>(t1.f0, t1.f1 + t2.f1);
+                    }
+                })
+                .map(new MapFunction<Tuple2<String, Integer>, String>() {
+                    @Override
+                    public String map(Tuple2<String, Integer> t2) throws Exception {
+//                        System.out.println(JsonMapper.INSTANCE.toJson(t2));
+                        return JsonMapper.INSTANCE.toJson(t2);
+                    }
+                })
+                .addSink(new FlinkKafkaProducer<String>(
+                        "localhost:9092",
+                        "stream-out",
+                        new SimpleStringSchema()
+
+                ));
+//                .print();
+
+
+        try {
+            env.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return env;
     }
 }
