@@ -14,9 +14,9 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 
 import java.util.Properties;
 
@@ -24,11 +24,10 @@ import java.util.Properties;
 /**
  * Created by Yannis on 2021/11/24  20:55
  * /usr/local/Cellar/apache-flink/1.14.0/libexec/bin/flink run -c com.xiaour.spring.boot.kafk.KafkaApplication /Users/Joeysin/IdeaWorkSpace/github/kafka-stream/target/kafka-stream-0.0.1-SNAPSHOT.jar --hostname localhost --port 8088
- *
  */
 
 @SpringBootApplication
-public class KafkaApplication {
+public class KafkaApplication implements CommandLineRunner {
 
 
     public static void main(String[] args) {
@@ -38,8 +37,9 @@ public class KafkaApplication {
     @Value("${spring.kafka.bootstrap-servers}")
     private String kafkaServer;
 
-    @Bean
-    public StreamExecutionEnvironment streamExecutionEnvironment() {
+
+    @Override
+    public void run(String... args) throws Exception {
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
@@ -75,8 +75,13 @@ public class KafkaApplication {
             public Tuple2<String, Integer> map(String s) throws Exception {
                 return new Tuple2<>(s, Integer.valueOf(s));
             }
-        }).keyBy(t -> t.f0)
+        })
+                .setParallelism(4)//并行数
+                .keyBy(t -> t.f0)
+                //.countWindow(1)  //窗口填满1个开始计算
+                //.window(GlobalWindows.create())
                 .window(TumblingEventTimeWindows.of(Time.seconds(1)))//窗口大小
+
                 .reduce(new ReduceFunction<Tuple2<String, Integer>>() {
                     @Override
                     public Tuple2<String, Integer> reduce(Tuple2<String, Integer> t2, Tuple2<String, Integer> t1) throws Exception {
@@ -99,12 +104,10 @@ public class KafkaApplication {
                 ));
 //                .print();
 
-
         try {
             env.execute();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return env;
     }
 }
