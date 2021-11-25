@@ -2,12 +2,14 @@ package com.xiaour.spring.boot.kafka;
 
 
 import com.vip.vjtools.vjkit.mapper.JsonMapper;
+import com.xiaour.spring.boot.kafka.DO.Location;
+import com.xiaour.spring.boot.kafka.aggFun.AggFun;
+import com.xiaour.spring.boot.kafka.window.ProcessWindowFun;
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.CheckpointingMode;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
@@ -58,50 +60,62 @@ public class KafkaApplication implements CommandLineRunner {
         FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<String>("test2", new SimpleStringSchema(), props);
 
 
-//        consumer.setStartFromEarliest(); // Flink从topic中最初的数据开始消费
+//        DO.setStartFromEarliest(); // Flink从topic中最初的数据开始消费
         consumer.setCommitOffsetsOnCheckpoints(true);
         env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);// 设置模式为exactly-once 默认(this is the default)
         env.enableCheckpointing(5000);//ms 执行间隔
         env.getCheckpointConfig().setMinPauseBetweenCheckpoints(500);// 确保检查点之间有进行500 ms的进度
         env.getCheckpointConfig().setMaxConcurrentCheckpoints(5);// 同一时间只允许进行一个检查点
 
-//        AllWindowedStream allWindowedStream = env.addSource(consumer).windowAll(TumblingEventTimeWindows.of(Time.seconds(5)));
+//        AllWindowedStream allWindowedStream = env.addSource(DO).windowAll(TumblingEventTimeWindows.of(Time.seconds(5)));
 
 //        allWindowedStream.sum(0);
 
 
-        env.addSource(consumer).map(new MapFunction<String, Tuple2<String, Integer>>() {
+        DataStreamSource<String> streamSource = env.addSource(consumer);
+
+        streamSource.map(new MapFunction<String, Location>() {
             @Override
-            public Tuple2<String, Integer> map(String s) throws Exception {
-                return new Tuple2<>(s, Integer.valueOf(s));
+            public Location map(String s) throws Exception {
+                Location location = JsonMapper.INSTANCE.fromJson(s, Location.class);
+                return location;
             }
         })
-                .setParallelism(4)//并行数
-                .keyBy(t -> t.f0)
+//                .setParallelism(4)//并行数
+                .keyBy(a -> a.getPlate())
                 //.countWindow(1)  //窗口填满1个开始计算
                 //.window(GlobalWindows.create())
-                .window(TumblingEventTimeWindows.of(Time.seconds(1)))//窗口大小
-
-                .reduce(new ReduceFunction<Tuple2<String, Integer>>() {
-                    @Override
-                    public Tuple2<String, Integer> reduce(Tuple2<String, Integer> t2, Tuple2<String, Integer> t1) throws Exception {
-                        System.out.println(t1.f0 + "   " + (t1.f1 + t2.f1));
-                        return new Tuple2<>(t1.f0, t1.f1 + t2.f1);
-                    }
-                })
-                .map(new MapFunction<Tuple2<String, Integer>, String>() {
-                    @Override
-                    public String map(Tuple2<String, Integer> t2) throws Exception {
-//                        System.out.println(JsonMapper.INSTANCE.toJson(t2));
-                        return JsonMapper.INSTANCE.toJson(t2);
-                    }
-                })
+                .window(TumblingEventTimeWindows.of(Time.seconds(5)))//窗口大小
+                .aggregate(new AggFun(), new ProcessWindowFun())
+//                .print();
                 .addSink(new FlinkKafkaProducer<String>(
                         "localhost:9092",
                         "stream-out",
                         new SimpleStringSchema()
 
                 ));
+
+
+//                .reduce(new ReduceFunction<Tuple2<String, Integer>>() {
+//            @Override
+//            public Tuple2<String, Integer> reduce(Tuple2<String, Integer> t2, Tuple2<String, Integer> t1) throws Exception {
+//                System.out.println(t1.f0 + "   " + (t1.f1 + t2.f1));
+//                return new Tuple2<>(t1.f0, t1.f1 + t2.f1);
+//            }
+//        })
+//                .map(new MapFunction<Tuple2<String, Integer>, String>() {
+//                    @Override
+//                    public String map(Tuple2<String, Integer> t2) throws Exception {
+////                        System.out.println(JsonMapper.INSTANCE.toJson(t2));
+//                        return JsonMapper.INSTANCE.toJson(t2);
+//                    }
+//                })
+//                .addSink(new FlinkKafkaProducer<String>(
+//                        "localhost:9092",
+//                        "stream-out",
+//                        new SimpleStringSchema()
+//
+//                ));
 //                .print();
 
         try {
