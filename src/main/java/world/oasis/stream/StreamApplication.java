@@ -51,13 +51,13 @@ public class StreamApplication {
         env.getCheckpointConfig().setMaxConcurrentCheckpoints(1);// 同一时间只允许进行一个检查点
 
         Properties props = new Properties();
-        props.setProperty("bootstrap.servers", "localhost:9092");
+        props.setProperty("bootstrap.servers", args[0]);
         props.setProperty("group.id", "flink-group");
 
 
         //数据源配置，是一个kafka消息的消费者
         FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<String>("test2", new SimpleStringSchema(), props);
-        FlinkKafkaProducer<String> flinkKafkaProducer = new FlinkKafkaProducer<String>("localhost:9092", "stream-out", new SimpleStringSchema());
+        FlinkKafkaProducer<String> flinkKafkaProducer = new FlinkKafkaProducer<String>(args[0], "stream-out", new SimpleStringSchema());
 //        DO.setStartFromEarliest(); // Flink从topic中最初的数据开始消费
         consumer.setCommitOffsetsOnCheckpoints(true);
 //        AllWindowedStream allWindowedStream = env.addSource(DO).windowAll(TumblingEventTimeWindows.of(Time.seconds(5)));
