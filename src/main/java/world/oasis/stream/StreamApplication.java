@@ -82,7 +82,7 @@ public class StreamApplication {
 //                .writeAsText("/Users/Joeysin/Desktop/flink.txt");
                 .addSink(flinkKafkaProducer);
         try {
-            env.execute();
+            env.execute("oasis-flink-stream-1.0.0");
         } catch (Exception e) {
             e.printStackTrace();
         }
