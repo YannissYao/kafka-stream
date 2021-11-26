@@ -1,16 +1,18 @@
-package com.xiaour.spring.boot.kafka.window;
+package world.oasis.stream.window;
 
+import com.google.common.collect.Maps;
 import com.vip.vjtools.vjkit.mapper.JsonMapper;
 import com.vip.vjtools.vjkit.time.DateFormatUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
+import java.util.Map;
 
-//TODO StateTtlConfig
 
+@Slf4j
 public class ProcessWindowFun extends ProcessWindowFunction<Tuple2<String, Integer>, String, String, TimeWindow> {
 
     @Override
@@ -18,10 +20,13 @@ public class ProcessWindowFun extends ProcessWindowFunction<Tuple2<String, Integ
 
         if (iterable.iterator().hasNext()) {
             Tuple2<String, Integer> t2 = iterable.iterator().next();
-
-            Tuple4 tuple4 = new Tuple4<>(t2.f0, t2.f1, DateFormatUtil.formatDate("yyyy/MM/dd HH:mm:ss", context.window().getStart()),
-                    DateFormatUtil.formatDate("yyyy/MM/dd HH:mm:ss", context.window().getEnd()));
-            collector.collect(JsonMapper.INSTANCE.toJson(tuple4));
+            Map<String, Object> map = Maps.newHashMapWithExpectedSize(10);
+            map.put("key", t2.f0);
+            map.put("aggVal", t2.f1);
+            map.put("windowStartTime", DateFormatUtil.formatDate("yyyy/MM/dd HH:mm:ss", context.window().getStart()));
+            map.put("windowEndTime", DateFormatUtil.formatDate("yyyy/MM/dd HH:mm:ss", context.window().getEnd()));
+            log.info("aggResult====> {}", JsonMapper.INSTANCE.toJson(map));
+            collector.collect(JsonMapper.INSTANCE.toJson(map));
         }
     }
 

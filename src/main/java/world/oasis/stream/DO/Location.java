@@ -1,14 +1,8 @@
-package com.xiaour.spring.boot.kafka.DO;
+package world.oasis.stream.DO;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@NoArgsConstructor
-@AllArgsConstructor
 @Data
-@Builder
 public class Location {
     private Integer vehicleId;
     private String plate;

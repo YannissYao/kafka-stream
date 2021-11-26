@@ -1,6 +1,6 @@
-package com.xiaour.spring.boot.kafka.aggFun;
+package world.oasis.stream.aggFun;
 
-import com.xiaour.spring.boot.kafka.DO.Location;
+import world.oasis.stream.DO.Location;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 
@@ -12,10 +12,11 @@ public class AggFun implements AggregateFunction<Location, Tuple2<String, Intege
     }
 
     @Override
-    public Tuple2<String, Integer> add(Location location, Tuple2<String, Integer> stringIntegerTuple2) {
-        System.out.println(location.getPlate() + "  " + stringIntegerTuple2.f1 + "   " + location.getGpsSpeed());
-        stringIntegerTuple2.f1 += location.getGpsSpeed();
-        return stringIntegerTuple2;
+    public Tuple2<String, Integer> add(Location location, Tuple2<String, Integer> t2) {
+//        System.out.println(location.getPlate() + "  " + t2.f1 + "   " + location.getGpsSpeed());
+        t2.f0 = location.getPlate();
+        t2.f1 += location.getGpsSpeed();
+        return t2;
     }
 
     @Override
