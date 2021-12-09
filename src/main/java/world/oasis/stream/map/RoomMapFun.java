@@ -2,16 +2,16 @@ package world.oasis.stream.map;
 
 import com.vip.vjtools.vjkit.mapper.JsonMapper;
 import org.apache.flink.api.common.functions.RichMapFunction;
-import world.oasis.stream.DO.Location;
+import world.oasis.stream.DO.RoomEventDO;
 
-public class RoomMapFun extends RichMapFunction<String, Location> {
+public class RoomMapFun extends RichMapFunction<String, RoomEventDO> {
 
 //    private transient MapState<String, Integer> sum;
 
 
     @Override
-    public Location map(String s) throws Exception {
-        Location location = JsonMapper.INSTANCE.fromJson(s, Location.class);
+    public RoomEventDO map(String s) throws Exception {
+        RoomEventDO roomEventDO = JsonMapper.INSTANCE.fromJson(s, RoomEventDO.class);
 //
 //        Iterator<Map.Entry<String, Integer>> iterator = sum.iterator();
 //        while (iterator.hasNext()) {
@@ -23,7 +23,7 @@ public class RoomMapFun extends RichMapFunction<String, Location> {
 //                sum.put(key, location.getGpsSpeed());
 //            }
 //        }
-        return location;
+        return roomEventDO;
     }
 //
 //    public void open(Configuration parameters) throws Exception {

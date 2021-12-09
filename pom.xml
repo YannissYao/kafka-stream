@@ -25,6 +25,7 @@
         <lombok.version>1.18.8</lombok.version>
         <flink.version>1.14.0</flink.version>
         <scala.version>2.12</scala.version>
+        <oasis.common.version>1.4-SNAPSHOT</oasis.common.version>
     </properties>
 
     <distributionManagement>
@@ -57,6 +58,40 @@
         <!--<scope>test</scope>-->
         <!--</dependency>-->
 
+
+        <dependency>
+            <groupId>world.oasis.vr</groupId>
+            <artifactId>oasis-base</artifactId>
+            <version>${oasis.common.version}</version>
+        </dependency>
+
+<!--        <dependency>-->
+<!--            <groupId>world.oasis.vr</groupId>-->
+<!--            <artifactId>oasis-common</artifactId>-->
+<!--            <version>${oasis.common.version}</version>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.springframework</groupId>-->
+<!--                    <artifactId>spring-core</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.springframework</groupId>-->
+<!--                    <artifactId>spring-context</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.springframework</groupId>-->
+<!--                    <artifactId>spring-context-support</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.springframework</groupId>-->
+<!--                    <artifactId>spring-web</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.springframework</groupId>-->
+<!--                    <artifactId>spring-aspects</artifactId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>org.springframework.kafka</groupId>

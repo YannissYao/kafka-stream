@@ -11,9 +11,10 @@ import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTime
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
-import world.oasis.stream.aggFun.AggFun;
+import world.oasis.base.constant.AppConfig;
+import world.oasis.stream.aggFun.RoomAggFun;
 import world.oasis.stream.map.RoomMapFun;
-import world.oasis.stream.window.ProcessWindowFun;
+import world.oasis.stream.processwindow.RoomProcessWindowFun;
 
 import java.util.Properties;
 
@@ -47,7 +48,7 @@ public class StreamApplication {
 
 
         env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);// 设置模式为exactly-once 默认(this is the default)
-        env.enableCheckpointing(5000);//ms chekpoint执行间隔
+        env.enableCheckpointing(10000);//ms chekpoint执行间隔
         env.getCheckpointConfig().setMinPauseBetweenCheckpoints(500);// 确保检查点之间有进行500 ms的进度
         env.getCheckpointConfig().setMaxConcurrentCheckpoints(1);// 同一时间只允许进行一个检查点
         // 表示一旦Flink处理程序被cancel后，会保留Checkpoint数据，以便根据实际需要恢复到指定的Checkpoint
@@ -55,12 +56,12 @@ public class StreamApplication {
 
         Properties props = new Properties();
         props.setProperty("bootstrap.servers", args[0]);
-        props.setProperty("group.id", "flink-group");
+        props.setProperty("group.id", "oasis-flink-group");
 
 
         //数据源配置，是一个kafka消息的消费者
-        FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<String>("stream-in", new SimpleStringSchema(), props);
-        FlinkKafkaProducer<String> flinkKafkaProducer = new FlinkKafkaProducer<String>(args[0], "stream-out2", new SimpleStringSchema());
+        FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<String>(AppConfig.KAFKA_TOPIC_ROOM_IN, new SimpleStringSchema(), props);
+        FlinkKafkaProducer<String> flinkKafkaProducer = new FlinkKafkaProducer<String>(args[0], AppConfig.KAFKA_TOPIC_ROOM_OUT, new SimpleStringSchema());
 //        DO.setStartFromEarliest(); // Flink从topic中最初的数据开始消费
         consumer.setCommitOffsetsOnCheckpoints(true);
 //        AllWindowedStream allWindowedStream = env.addSource(DO).windowAll(TumblingEventTimeWindows.of(Time.seconds(5)));
@@ -69,12 +70,12 @@ public class StreamApplication {
 
         streamSource.map(new RoomMapFun())
 //                .setParallelism(4)//并行数
-                .keyBy(addSource -> addSource.getPlate())
+                .keyBy(roomEvent -> roomEvent.getRoomId())
 //                //.countWindow(1)  //窗口填满1个开始计算
 //                .window(GlobalWindows.create())
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(10)))//窗口大小
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(3)))//窗口大小
 //                .window(SlidingProcessingTimeWindows.of(Time.days(3),Time.seconds(10)))//窗口大小
-                .aggregate(new AggFun(), new ProcessWindowFun())
+                .aggregate(new RoomAggFun(), new RoomProcessWindowFun())
 //                .print();
 //                .writeAsText("/Users/Joeysin/Desktop/flink.txt");
                 .addSink(flinkKafkaProducer);
