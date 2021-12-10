@@ -73,7 +73,7 @@ public class StreamApplication {
                 .keyBy(roomEvent -> roomEvent.getRoomId())
 //                //.countWindow(1)  //窗口填满1个开始计算
 //                .window(GlobalWindows.create())
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(3)))//窗口大小
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(2)))//窗口大小
 //                .window(SlidingProcessingTimeWindows.of(Time.days(3),Time.seconds(10)))//窗口大小
                 .aggregate(new RoomAggFun(), new RoomProcessWindowFun())
 //                .print();
