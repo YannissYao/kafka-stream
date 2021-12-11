@@ -48,6 +48,8 @@ public class StreamApplication {
 
 
         env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);// 设置模式为exactly-once 默认(this is the default)
+        // checkpoint执行有效期：要么1min完成 要么1min放弃
+        env.getCheckpointConfig().setCheckpointTimeout(60000);
         env.enableCheckpointing(10000);//ms chekpoint执行间隔
         env.getCheckpointConfig().setMinPauseBetweenCheckpoints(500);// 确保检查点之间有进行500 ms的进度
         env.getCheckpointConfig().setMaxConcurrentCheckpoints(1);// 同一时间只允许进行一个检查点
@@ -68,7 +70,8 @@ public class StreamApplication {
 //        allWindowedStream.sum(0);
         DataStreamSource<String> streamSource = env.addSource(consumer);
 
-        streamSource.map(new RoomMapFun())
+        streamSource
+                .map(new RoomMapFun())
 //                .setParallelism(4)//并行数
                 .keyBy(roomEvent -> roomEvent.getRoomId())
 //                //.countWindow(1)  //窗口填满1个开始计算
@@ -78,7 +81,7 @@ public class StreamApplication {
                 .aggregate(new RoomAggFun(), new RoomProcessWindowFun())
 //                .print();
 //                .writeAsText("/Users/Joeysin/Desktop/flink.txt");
-                .addSink(flinkKafkaProducer);
+                .addSink(flinkKafkaProducer).setParallelism(1);
         try {
             env.execute("oasis-flink-stream-1.0.0");
         } catch (Exception e) {
