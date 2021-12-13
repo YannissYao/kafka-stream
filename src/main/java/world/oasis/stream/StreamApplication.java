@@ -62,8 +62,8 @@ public class StreamApplication {
 
 
         //数据源配置，是一个kafka消息的消费者
-        FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<String>(AppConfig.KAFKA_TOPIC_ROOM_IN, new SimpleStringSchema(), props);
-        FlinkKafkaProducer<String> flinkKafkaProducer = new FlinkKafkaProducer<String>(args[0], AppConfig.KAFKA_TOPIC_ROOM_OUT, new SimpleStringSchema());
+        FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<String>(AppConfig.KAFKA_TOPIC_ROOM_EVENT_IN, new SimpleStringSchema(), props);
+        FlinkKafkaProducer<String> flinkKafkaProducer = new FlinkKafkaProducer<String>(args[0], AppConfig.KAFKA_TOPIC_ROOM_EVENT_OUT, new SimpleStringSchema());
 //        DO.setStartFromEarliest(); // Flink从topic中最初的数据开始消费
         consumer.setCommitOffsetsOnCheckpoints(true);
 //        AllWindowedStream allWindowedStream = env.addSource(DO).windowAll(TumblingEventTimeWindows.of(Time.seconds(5)));
@@ -72,8 +72,15 @@ public class StreamApplication {
 
         streamSource
                 .map(new RoomMapFun())
+//                .union(hotStreamSource.map(new RichMapFunction<String, Tuple10<String, Integer, Long, String, String, String, String, Integer, Integer, Integer>>() {
+//                    @Override
+//                    public Tuple10<String, Integer, Long, String, String, String, String, Integer, Integer, Integer> map(String s) throws Exception {
+//                        RoomEventDO roomEventDO = JsonMapper.INSTANCE.fromJson(s, RoomEventDO.class);
+//                        return new Tuple10<>(roomEventDO.getRoomId(), 0, 0L, "", "", roomEventDO.getName(), "", 0, 0, 0);
+//                    }
+//                }))
 //                .setParallelism(4)//并行数
-                .keyBy(roomEvent -> roomEvent.getRoomId())
+                .keyBy(tuple6 -> tuple6.f1)
 //                //.countWindow(1)  //窗口填满1个开始计算
 //                .window(GlobalWindows.create())
                 .window(TumblingProcessingTimeWindows.of(Time.seconds(2)))//窗口大小
