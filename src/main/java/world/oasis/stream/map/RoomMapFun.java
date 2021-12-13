@@ -10,8 +10,10 @@ public class RoomMapFun extends RichMapFunction<String, Tuple6<Integer, String, 
 
     @Override
     public Tuple6<Integer, String, Long, String, Integer, Long> map(String s) throws Exception {
-        Tuple6 tuple6 = JsonMapper.INSTANCE.fromJson(s, Tuple6.class);
-        return tuple6;
+        Tuple6<Integer, String, Long, String, Integer, Long> obj = JsonMapper.INSTANCE.fromJson(s, Tuple6.class);
+        obj.f2 = Long.parseLong(String.valueOf(obj.f2));
+        obj.f5 = Long.parseLong(String.valueOf(obj.f5));
+        return obj;
     }
 
 }
