@@ -20,7 +20,7 @@ import java.util.Properties;
 
 /**
  * Created by Yannis on 2021/11/24  20:55
- * ./bin/flink run kafka-stream-0.0.1-SNAPSHOT.jar  -c指定入口类 -p 指定并行度
+ * ./bin/flink run kafka-stream-0.0.1-SNAPSHOT.jar  -c world.oasis.stream.StreamApplication -p 1
  * ./bin/flink cancel {jobId}
  */
 

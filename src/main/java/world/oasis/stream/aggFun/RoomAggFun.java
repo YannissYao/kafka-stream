@@ -30,7 +30,7 @@ public class RoomAggFun implements AggregateFunction<Tuple6<Integer, String, Lon
             if (Objects.equals(1, newObj.f4)) {
                 //加入房间Uid数组
                 acc.f2 += "," + newObj.f2;
-            } else {
+            } else if(Objects.equals(-1, newObj.f4)){
                 acc.f3 += "," + newObj.f2;
             }
         }
