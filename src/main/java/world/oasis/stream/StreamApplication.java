@@ -13,6 +13,8 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import world.oasis.base.constant.AppConfig;
 import world.oasis.stream.aggFun.RoomAggFun;
+import world.oasis.stream.aggFun.RoomLightLongAggFun;
+import world.oasis.stream.aggFun.RoomLightShortAggFun;
 import world.oasis.stream.map.RoomMapFun;
 import world.oasis.stream.processwindow.RoomProcessWindowFun;
 
@@ -45,8 +47,10 @@ public class StreamApplication {
 //                1, // 尝试重启的次数
 //                Time.seconds(10)) // 间隔
 //        );
-
-
+//# run -e yarn-per-job -yjm 4096 -ytm 4096 --yarnslots 4  --detached /usr/lib/flink-current/examples/streaming/TopSpeedWindowing.jar
+        //run -m yarn-cluster -yjm 1024 -ytm 2048 ossref://oasis-server-global/flink/oasis-flink-stream-1.0.0-SNAPSHOT.jar
+//oasis-server-global/flink/oasis-flink-stream-1.0.0-SNAPSHOT.jar
+        //https://help.aliyun.com/document_detail/85446.html    作业环境key
         env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);// 设置模式为exactly-once 默认(this is the default)
         // checkpoint执行有效期：要么1min完成 要么1min放弃
         env.getCheckpointConfig().setCheckpointTimeout(60000);
@@ -57,18 +61,25 @@ public class StreamApplication {
         env.getCheckpointConfig().enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
 
         Properties props = new Properties();
-        props.setProperty("bootstrap.servers", args[0]);
+        String address = args.length == 0 ? System.getenv("address") : args[0];
+        props.setProperty("bootstrap.servers", address);
         props.setProperty("group.id", "oasis-flink-group");
 
 
         //数据源配置，是一个kafka消息的消费者
         FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<String>(AppConfig.KAFKA_TOPIC_ROOM_EVENT_IN, new SimpleStringSchema(), props);
-        FlinkKafkaProducer<String> flinkKafkaProducer = new FlinkKafkaProducer<String>(args[0], AppConfig.KAFKA_TOPIC_ROOM_EVENT_OUT, new SimpleStringSchema());
+        FlinkKafkaProducer<String> flinkKafkaProducer = new FlinkKafkaProducer<String>(address, AppConfig.KAFKA_TOPIC_ROOM_EVENT_OUT, new SimpleStringSchema());
+
+        //曝光值
+        FlinkKafkaConsumer<String> lightConsumer = new FlinkKafkaConsumer<String>(AppConfig.KAFKA_TOPIC_ROOM_LIGHT_IN, new SimpleStringSchema(), props);
+        FlinkKafkaProducer<String> lightProducer = new FlinkKafkaProducer<String>(address, AppConfig.KAFKA_TOPIC_ROOM_LIGHT_OUT, new SimpleStringSchema());
+
 //        DO.setStartFromEarliest(); // Flink从topic中最初的数据开始消费
         consumer.setCommitOffsetsOnCheckpoints(true);
 //        AllWindowedStream allWindowedStream = env.addSource(DO).windowAll(TumblingEventTimeWindows.of(Time.seconds(5)));
 //        allWindowedStream.sum(0);
         DataStreamSource<String> streamSource = env.addSource(consumer);
+        DataStreamSource<String> lightStreamSource = env.addSource(lightConsumer);
 
         streamSource
                 .map(new RoomMapFun())
@@ -89,6 +100,23 @@ public class StreamApplication {
 //                .print();
 //                .writeAsText("/Users/Joeysin/Desktop/flink.txt");
                 .addSink(flinkKafkaProducer).setParallelism(1);
+
+        //曝光度 长分钟级别窗口
+        lightStreamSource
+                .map(new RoomMapFun())
+                .keyBy(tuple6 -> tuple6.f1)
+                .window(TumblingProcessingTimeWindows.of(Time.minutes(5)))
+                .aggregate(new RoomLightLongAggFun(), new RoomProcessWindowFun())
+                .addSink(lightProducer).setParallelism(1);
+
+        //曝光度 短分钟级别窗口【处理曝光值为0】
+        lightStreamSource
+                .map(new RoomMapFun())
+                .keyBy(tuple6 -> tuple6.f1)
+                .window(TumblingProcessingTimeWindows.of(Time.minutes(1)))
+                .aggregate(new RoomLightShortAggFun(), new RoomProcessWindowFun())
+                .addSink(lightProducer).setParallelism(1);
+
         try {
             env.execute("oasis-flink-stream-1.0.0");
         } catch (Exception e) {

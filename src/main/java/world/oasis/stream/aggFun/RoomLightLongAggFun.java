@@ -7,7 +7,7 @@ import world.oasis.base.room.StreamEventEnum;
 
 import java.util.Objects;
 
-public class RoomAggFun implements AggregateFunction<Tuple6<Integer, String, Long, String, Integer, Long>,
+public class RoomLightLongAggFun implements AggregateFunction<Tuple6<Integer, String, Long, String, Integer, Long>,
         Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>,
         Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>> {
 
@@ -25,15 +25,16 @@ public class RoomAggFun implements AggregateFunction<Tuple6<Integer, String, Lon
             return acc;
         }
         acc.f0 = t6.f1;
+        acc.f1 = 1;
         if (Objects.equals(eventId, StreamEventEnum.ROOM_NUMBER_CHANGE_EVENT.getValue())) {
-            acc.f1 += t6.f4;
-            if (Objects.equals(1, t6.f4)) {
-                //加入房间Uid数组
-                acc.f2 += "," + t6.f2;
-            } else if(Objects.equals(-1, t6.f4)){
-                acc.f3 += "," + t6.f2;
-            }
-        }else if(Objects.equals(eventId, StreamEventEnum.QUERY_ROOM_EVENT.getValue())){
+            acc.f6 += t6.f4;
+        }else if(Objects.equals(eventId, StreamEventEnum.ROOM_FOLLOW_EVENT.getValue())){
+            acc.f6 += t6.f4;
+        }else if(Objects.equals(eventId, StreamEventEnum.SEND_GIFT_EVENT.getValue())){
+            acc.f6 += t6.f4;
+        }else if(Objects.equals(eventId, StreamEventEnum.IM_MSG_EVENT.getValue())){
+            acc.f6 += t6.f4;
+        }else if(Objects.equals(eventId, StreamEventEnum.START_STOP_VOICE.getValue())){
             acc.f6 += t6.f4;
         }
         return acc;

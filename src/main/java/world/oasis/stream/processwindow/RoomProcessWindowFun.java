@@ -21,8 +21,10 @@ public class RoomProcessWindowFun extends ProcessWindowFunction<Tuple10<String, 
 //            map.put("aggVal", t4.f1);
 //            map.put("windowStartTime", DateFormatUtil.formatDate("yyyy/MM/dd HH:mm:ss", context.window().getStart()));
 //            map.put("windowEndTime", DateFormatUtil.formatDate("yyyy/MM/dd HH:mm:ss", context.window().getEnd()));
+            t10.f8 = context.window().getStart();
+            t10.f9 = context.window().getEnd();
             String json = JsonMapper.INSTANCE.toJson(t10);
-            log.info("aggResult====> {}", json);
+            log.info("aggLightResult====> {}", json);
             collector.collect(json);
         }
     }
