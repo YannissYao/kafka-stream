@@ -13,8 +13,7 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import world.oasis.base.constant.AppConfig;
 import world.oasis.stream.aggFun.RoomAggFun;
-import world.oasis.stream.aggFun.RoomLightLongAggFun;
-import world.oasis.stream.aggFun.RoomLightShortAggFun;
+import world.oasis.stream.aggFun.RoomLightAggFun;
 import world.oasis.stream.map.RoomMapFun;
 import world.oasis.stream.processwindow.RoomProcessWindowFun;
 
@@ -41,7 +40,10 @@ public class StreamApplication {
 
     public static void main(String[] args) {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
+        Properties props = new Properties();
+        String address = System.getenv("KAFKA_ADDRESS");
+        props.setProperty("bootstrap.servers", address);
+        props.setProperty("group.id", "oasis-flink-group");
         //处理失败后重启策略
 //        env.setRestartStrategy(RestartStrategies.fixedDelayRestart(
 //                1, // 尝试重启的次数
@@ -59,12 +61,6 @@ public class StreamApplication {
         env.getCheckpointConfig().setMaxConcurrentCheckpoints(1);// 同一时间只允许进行一个检查点
         // 表示一旦Flink处理程序被cancel后，会保留Checkpoint数据，以便根据实际需要恢复到指定的Checkpoint
         env.getCheckpointConfig().enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
-
-        Properties props = new Properties();
-        String address = args.length == 0 ? System.getenv("address") : args[0];
-        props.setProperty("bootstrap.servers", address);
-        props.setProperty("group.id", "oasis-flink-group");
-
 
         //数据源配置，是一个kafka消息的消费者
         FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<String>(AppConfig.KAFKA_TOPIC_ROOM_EVENT_IN, new SimpleStringSchema(), props);
@@ -105,16 +101,8 @@ public class StreamApplication {
         lightStreamSource
                 .map(new RoomMapFun())
                 .keyBy(tuple6 -> tuple6.f1)
-                .window(TumblingProcessingTimeWindows.of(Time.minutes(5)))
-                .aggregate(new RoomLightLongAggFun(), new RoomProcessWindowFun())
-                .addSink(lightProducer).setParallelism(1);
-
-        //曝光度 短分钟级别窗口【处理曝光值为0】
-        lightStreamSource
-                .map(new RoomMapFun())
-                .keyBy(tuple6 -> tuple6.f1)
-                .window(TumblingProcessingTimeWindows.of(Time.minutes(1)))
-                .aggregate(new RoomLightShortAggFun(), new RoomProcessWindowFun())
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(10)))
+                .aggregate(new RoomLightAggFun(), new RoomProcessWindowFun())
                 .addSink(lightProducer).setParallelism(1);
 
         try {
@@ -123,11 +111,4 @@ public class StreamApplication {
             e.printStackTrace();
         }
     }
-
-
-//    @Override
-//    public void run(String... args) throws Exception {
-
-
-//    }
 }

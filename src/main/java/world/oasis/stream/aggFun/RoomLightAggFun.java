@@ -7,7 +7,7 @@ import world.oasis.base.room.StreamEventEnum;
 
 import java.util.Objects;
 
-public class RoomLightLongAggFun implements AggregateFunction<Tuple6<Integer, String, Long, String, Integer, Long>,
+public class RoomLightAggFun implements AggregateFunction<Tuple6<Integer, String, Long, String, Integer, Long>,
         Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>,
         Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>> {
 
@@ -25,7 +25,6 @@ public class RoomLightLongAggFun implements AggregateFunction<Tuple6<Integer, St
             return acc;
         }
         acc.f0 = t6.f1;
-        acc.f1 = 1;
         if (Objects.equals(eventId, StreamEventEnum.ROOM_NUMBER_CHANGE_EVENT.getValue())) {
             acc.f6 += t6.f4;
         }else if(Objects.equals(eventId, StreamEventEnum.ROOM_FOLLOW_EVENT.getValue())){
