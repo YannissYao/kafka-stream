@@ -6,8 +6,9 @@ import org.apache.flink.api.java.tuple.Tuple6;
 import world.oasis.base.room.StreamEventEnum;
 
 import java.util.Objects;
+import java.util.Optional;
 
-public class RoomAggFun implements AggregateFunction<Tuple6<Integer, String, Long, String, Integer, Long>,
+public class RoomActionTagAggFun implements AggregateFunction<Tuple6<Integer, String, Long, String, Integer, Long>,
         Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>,
         Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>> {
 
@@ -19,25 +20,16 @@ public class RoomAggFun implements AggregateFunction<Tuple6<Integer, String, Lon
 
     @Override
     public Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long> add(Tuple6<Integer, String, Long, String, Integer, Long> t6,
+
                                                                                                       Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long> acc) {
-        Integer eventId = Integer.parseInt(String.valueOf(t6.f0));
-        if (Objects.isNull(eventId)) {
+        if (Objects.equals(StreamEventEnum.ROOM_NUMBER_CHANGE_EVENT.getValue(), t6.f0)) {
             return acc;
         }
-        acc.f0 = String.valueOf(t6.f1);
-        if (Objects.equals(eventId, StreamEventEnum.ROOM_NUMBER_CHANGE_EVENT.getValue())) {
-            acc.f1 += t6.f4;
-            if (Objects.equals(1, t6.f4)) {
-                //加入房间Uid数组
-                acc.f2 += "," + t6.f2;
-            } else if (Objects.equals(-1, t6.f4)) {
-                acc.f3 += "," + t6.f2;
-            }
-        } else if (Objects.equals(eventId, StreamEventEnum.QUERY_ROOM_EVENT.getValue())) {
-            acc.f6 += t6.f4;
-        } else {
-            return acc;
-        }
+        //用户标签count++
+        acc.f0 = "action";
+        acc.f1 = Optional.ofNullable(t6.f0).orElse(0);//StreamEventEnum  f3 走标签
+        acc.f6 = Optional.ofNullable(t6.f2).orElse(0L).intValue();//uid
+        acc.f7 += Optional.ofNullable(t6.f5).orElse(0L).intValue();//count
         return acc;
     }
 

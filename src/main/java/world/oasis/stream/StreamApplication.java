@@ -3,6 +3,9 @@ package world.oasis.stream;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple6;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
@@ -12,9 +15,13 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import world.oasis.base.constant.AppConfig;
+import world.oasis.stream.aggFun.CatRoomCountAggFun;
+import world.oasis.stream.aggFun.RoomActionTagAggFun;
 import world.oasis.stream.aggFun.RoomAggFun;
 import world.oasis.stream.aggFun.RoomLightAggFun;
 import world.oasis.stream.map.RoomMapFun;
+import world.oasis.stream.processwindow.ActionTagProcessWindowFun;
+import world.oasis.stream.processwindow.CatRoomCountProcessWindowFun;
 import world.oasis.stream.processwindow.RoomProcessWindowFun;
 
 import java.util.Properties;
@@ -64,11 +71,18 @@ public class StreamApplication {
 
         //数据源配置，是一个kafka消息的消费者
         FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<String>(AppConfig.KAFKA_TOPIC_ROOM_EVENT_IN, new SimpleStringSchema(), props);
-        FlinkKafkaProducer<String> flinkKafkaProducer = new FlinkKafkaProducer<String>(address, AppConfig.KAFKA_TOPIC_ROOM_EVENT_OUT, new SimpleStringSchema());
+        FlinkKafkaProducer<String> eventOut = new FlinkKafkaProducer<String>(address, AppConfig.KAFKA_TOPIC_ROOM_EVENT_OUT, new SimpleStringSchema());
 
         //曝光值
         FlinkKafkaConsumer<String> lightConsumer = new FlinkKafkaConsumer<String>(AppConfig.KAFKA_TOPIC_ROOM_LIGHT_IN, new SimpleStringSchema(), props);
-        FlinkKafkaProducer<String> lightProducer = new FlinkKafkaProducer<String>(address, AppConfig.KAFKA_TOPIC_ROOM_LIGHT_OUT, new SimpleStringSchema());
+        FlinkKafkaProducer<String> lightOut = new FlinkKafkaProducer<String>(address, AppConfig.KAFKA_TOPIC_ROOM_LIGHT_OUT, new SimpleStringSchema());
+
+        //用户行为数量输出
+        FlinkKafkaProducer<String> userActionOut = new FlinkKafkaProducer<String>(address, AppConfig.KAFKA_TOPIC_USER_ACTION_OUT, new SimpleStringSchema());
+
+        //分类下房间数输出
+        FlinkKafkaProducer<String> catRoomCountOut = new FlinkKafkaProducer<String>(address, AppConfig.KAFKA_TOPIC_CAT_ROOM_COUNT_OUT, new SimpleStringSchema());
+
 
 //        DO.setStartFromEarliest(); // Flink从topic中最初的数据开始消费
         consumer.setCommitOffsetsOnCheckpoints(true);
@@ -95,7 +109,7 @@ public class StreamApplication {
                 .aggregate(new RoomAggFun(), new RoomProcessWindowFun())
 //                .print();
 //                .writeAsText("/Users/Joeysin/Desktop/flink.txt");
-                .addSink(flinkKafkaProducer).setParallelism(1);
+                .addSink(eventOut).setParallelism(1);
 
         //曝光度 长分钟级别窗口
         lightStreamSource
@@ -103,8 +117,28 @@ public class StreamApplication {
                 .keyBy(tuple6 -> tuple6.f1)
                 .window(TumblingProcessingTimeWindows.of(Time.seconds(10)))
                 .aggregate(new RoomLightAggFun(), new RoomProcessWindowFun())
-                .addSink(lightProducer).setParallelism(1);
+                .addSink(lightOut).setParallelism(1);
 
+        //行为标签
+        lightStreamSource
+                .map(new RoomMapFun())
+                .keyBy(new KeySelector<Tuple6<Integer, String, Long, String, Integer, Long>, Tuple2<Integer, Long>>() {
+                    @Override
+                    public Tuple2<Integer, Long> getKey(Tuple6<Integer, String, Long, String, Integer, Long> tuple6) throws Exception {
+                        return Tuple2.of(tuple6.f0, tuple6.f2);
+                    }
+                })
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(30)))
+                .aggregate(new RoomActionTagAggFun(), new ActionTagProcessWindowFun())
+                .addSink(userActionOut).setParallelism(1);
+
+        //分类下房间数统计
+        streamSource
+                .map(new RoomMapFun())
+                .keyBy(tuple6 -> tuple6.f2)
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(2)))
+                .aggregate(new CatRoomCountAggFun(), new CatRoomCountProcessWindowFun())
+                .addSink(catRoomCountOut).setParallelism(1);
         try {
             env.execute("oasis-flink-stream-1.0.0");
         } catch (Exception e) {

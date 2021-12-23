@@ -35,6 +35,8 @@ public class RoomLightAggFun implements AggregateFunction<Tuple6<Integer, String
             acc.f6 += t6.f4;
         }else if(Objects.equals(eventId, StreamEventEnum.START_STOP_VOICE.getValue())){
             acc.f6 += t6.f4;
+        }else {
+            return acc;
         }
         return acc;
     }

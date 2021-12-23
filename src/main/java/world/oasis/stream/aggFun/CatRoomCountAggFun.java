@@ -3,13 +3,10 @@ package world.oasis.stream.aggFun;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.java.tuple.Tuple10;
 import org.apache.flink.api.java.tuple.Tuple6;
-import world.oasis.base.room.StreamEventEnum;
 
 import java.util.Objects;
 
-public class RoomAggFun implements AggregateFunction<Tuple6<Integer, String, Long, String, Integer, Long>,
-        Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>,
-        Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>> {
+public class CatRoomCountAggFun implements AggregateFunction<Tuple6<Integer, String, Long, String, Integer, Long>, Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>, Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>> {
 
 
     @Override
@@ -20,24 +17,11 @@ public class RoomAggFun implements AggregateFunction<Tuple6<Integer, String, Lon
     @Override
     public Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long> add(Tuple6<Integer, String, Long, String, Integer, Long> t6,
                                                                                                       Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long> acc) {
-        Integer eventId = Integer.parseInt(String.valueOf(t6.f0));
-        if (Objects.isNull(eventId)) {
+        if (Objects.nonNull(t6.f3)) {
             return acc;
         }
-        acc.f0 = String.valueOf(t6.f1);
-        if (Objects.equals(eventId, StreamEventEnum.ROOM_NUMBER_CHANGE_EVENT.getValue())) {
-            acc.f1 += t6.f4;
-            if (Objects.equals(1, t6.f4)) {
-                //加入房间Uid数组
-                acc.f2 += "," + t6.f2;
-            } else if (Objects.equals(-1, t6.f4)) {
-                acc.f3 += "," + t6.f2;
-            }
-        } else if (Objects.equals(eventId, StreamEventEnum.QUERY_ROOM_EVENT.getValue())) {
-            acc.f6 += t6.f4;
-        } else {
-            return acc;
-        }
+        acc.f1 = t6.f2.intValue();//catId
+        acc.f6 += t6.f5.intValue();//count
         return acc;
     }
 

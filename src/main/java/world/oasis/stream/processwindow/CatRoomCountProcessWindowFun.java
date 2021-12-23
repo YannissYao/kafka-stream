@@ -9,17 +9,17 @@ import org.apache.flink.util.Collector;
 
 
 @Slf4j
-public class RoomProcessWindowFun extends ProcessWindowFunction<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>, String, String, TimeWindow> {
+public class CatRoomCountProcessWindowFun extends ProcessWindowFunction<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>, String,Long, TimeWindow> {
+
 
     @Override
-    public void process(String s, Context context, Iterable<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>> iterable, Collector<String> collector) throws Exception {
-
+    public void process(Long aLong, ProcessWindowFunction<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>, String, Long, TimeWindow>.Context context, Iterable<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>> iterable, Collector<String> collector) throws Exception {
         if (iterable.iterator().hasNext()) {
             Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long> t10 = iterable.iterator().next();
             t10.f8 = context.window().getStart();
             t10.f9 = context.window().getEnd();
             String json = JsonMapper.INSTANCE.toJson(t10);
-            log.info("aggLightResult====> {}", json);
+            log.info("catRoomCountResult====> {}", json);
             collector.collect(json);
         }
     }
