@@ -9,11 +9,11 @@ import org.apache.flink.util.Collector;
 
 
 @Slf4j
-public class CatRoomCountProcessWindowFun extends ProcessWindowFunction<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>, String,Long, TimeWindow> {
+public class CatRoomCountProcessWindowFun extends ProcessWindowFunction<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>, String, Integer, TimeWindow> {
 
 
     @Override
-    public void process(Long aLong, ProcessWindowFunction<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>, String, Long, TimeWindow>.Context context, Iterable<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>> iterable, Collector<String> collector) throws Exception {
+    public void process(Integer integer, ProcessWindowFunction<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>, String, Integer, TimeWindow>.Context context, Iterable<Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long>> iterable, Collector<String> collector) throws Exception {
         if (iterable.iterator().hasNext()) {
             Tuple10<String, Integer, String, String, String, String, Integer, Integer, Long, Long> t10 = iterable.iterator().next();
             t10.f8 = context.window().getStart();
