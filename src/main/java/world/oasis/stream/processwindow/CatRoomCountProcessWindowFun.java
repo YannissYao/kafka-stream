@@ -19,7 +19,7 @@ public class CatRoomCountProcessWindowFun extends ProcessWindowFunction<Tuple10<
             t10.f8 = context.window().getStart();
             t10.f9 = context.window().getEnd();
             String json = JsonMapper.INSTANCE.toJson(t10);
-            log.info("catRoomCountResult====> {}", json);
+            log.info("CatRoomCountResult====> {}", json);
             collector.collect(json);
         }
     }

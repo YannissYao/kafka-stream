@@ -19,7 +19,7 @@ public class RoomProcessWindowFun extends ProcessWindowFunction<Tuple10<String, 
             t10.f8 = context.window().getStart();
             t10.f9 = context.window().getEnd();
             String json = JsonMapper.INSTANCE.toJson(t10);
-            log.info("aggLightResult====> {}", json);
+            log.info("RoomEventResult====> {}", json);
             collector.collect(json);
         }
     }

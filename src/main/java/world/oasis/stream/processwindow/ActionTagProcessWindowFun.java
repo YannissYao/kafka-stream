@@ -20,7 +20,7 @@ public class ActionTagProcessWindowFun extends ProcessWindowFunction<Tuple10<Str
             t10.f8 = context.window().getStart();
             t10.f9 = context.window().getEnd();
             String json = JsonMapper.INSTANCE.toJson(t10);
-            log.info("actiontagResult====> {}", json);
+            log.info("ActiontagResult====> {}", json);
             collector.collect(json);
         }
     }

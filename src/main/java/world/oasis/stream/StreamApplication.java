@@ -18,9 +18,11 @@ import world.oasis.stream.aggFun.RoomAggFun;
 import world.oasis.stream.aggFun.RoomLightAggFun;
 import world.oasis.stream.map.CatCountMapFun;
 import world.oasis.stream.map.ClubNumberCountMapFun;
+import world.oasis.stream.map.LightMapFun;
 import world.oasis.stream.map.RoomMapFun;
 import world.oasis.stream.processwindow.CatRoomCountProcessWindowFun;
 import world.oasis.stream.processwindow.ClubNumberCountProcessWindowFun;
+import world.oasis.stream.processwindow.LightValProcessWindowFun;
 import world.oasis.stream.processwindow.RoomProcessWindowFun;
 
 import java.util.Properties;
@@ -121,10 +123,10 @@ public class StreamApplication {
 
         //曝光度 长分钟级别窗口
         lightStreamSource
-                .map(new RoomMapFun())
+                .map(new LightMapFun())
                 .keyBy(tuple6 -> tuple6.f1)
                 .window(TumblingProcessingTimeWindows.of(Time.seconds(10)))
-                .aggregate(new RoomLightAggFun(), new RoomProcessWindowFun())
+                .aggregate(new RoomLightAggFun(), new LightValProcessWindowFun())
                 .addSink(lightOut).setParallelism(1);
 
         //行为标签
