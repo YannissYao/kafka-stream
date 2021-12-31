@@ -60,6 +60,7 @@ public class StreamApplication {
 //# run -e yarn-per-job -yjm 4096 -ytm 4096 --yarnslots 4  --detached /usr/lib/flink-current/examples/streaming/TopSpeedWindowing.jar
         //run -m yarn-cluster -yjm 1024 -ytm 2048 ossref://oasis-server-global/flink/oasis-flink-stream-1.0.0-SNAPSHOT.jar
 //oasis-server-global/flink/oasis-flink-stream-1.0.0-SNAPSHOT.jar
+        //test KAFKA_ADDRESS=47.101.47.116:9093
         //https://help.aliyun.com/document_detail/85446.html    作业环境key
         env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);// 设置模式为exactly-once 默认(this is the default)
         // checkpoint执行有效期：要么1min完成 要么1min放弃
