@@ -12,16 +12,10 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import world.oasis.base.constant.AppConfig;
-import world.oasis.stream.aggFun.CatRoomCountAggFun;
-import world.oasis.stream.aggFun.ClubNumberCountAggFun;
 import world.oasis.stream.aggFun.RoomAggFun;
 import world.oasis.stream.aggFun.RoomLightAggFun;
-import world.oasis.stream.map.CatCountMapFun;
-import world.oasis.stream.map.ClubNumberCountMapFun;
 import world.oasis.stream.map.LightMapFun;
 import world.oasis.stream.map.RoomMapFun;
-import world.oasis.stream.processwindow.CatRoomCountProcessWindowFun;
-import world.oasis.stream.processwindow.ClubNumberCountProcessWindowFun;
 import world.oasis.stream.processwindow.LightValProcessWindowFun;
 import world.oasis.stream.processwindow.RoomProcessWindowFun;
 
@@ -83,24 +77,24 @@ public class StreamApplication {
 //        FlinkKafkaProducer<String> userActionOut = new FlinkKafkaProducer<String>(address, AppConfig.KAFKA_TOPIC_USER_ACTION_OUT, new SimpleStringSchema());
 
         //分类下房间数输入/出
-        FlinkKafkaConsumer<String> catRoomConsumer = new FlinkKafkaConsumer(AppConfig.KAFKA_TOPIC_CAT_COUNT_IN, new SimpleStringSchema(), props);
-        FlinkKafkaProducer<String> catRoomCountOut = new FlinkKafkaProducer(address, AppConfig.KAFKA_TOPIC_CAT_COUNT_OUT, new SimpleStringSchema());
+//        FlinkKafkaConsumer<String> catRoomConsumer = new FlinkKafkaConsumer(AppConfig.KAFKA_TOPIC_CAT_COUNT_IN, new SimpleStringSchema(), props);
+//        FlinkKafkaProducer<String> catRoomCountOut = new FlinkKafkaProducer(address, AppConfig.KAFKA_TOPIC_CAT_COUNT_OUT, new SimpleStringSchema());
 
         //俱乐部成员数
-        FlinkKafkaConsumer<String> clubNumberCountConsumer = new FlinkKafkaConsumer(AppConfig.KAFKA_TOPIC_CLUB_NUMBER_EVENT_IN, new SimpleStringSchema(), props);
-        FlinkKafkaProducer<String> clubNumberCountOut = new FlinkKafkaProducer(address, AppConfig.KAFKA_TOPIC_CLUB_NUMBER_EVENT_OUT, new SimpleStringSchema());
+//        FlinkKafkaConsumer<String> clubNumberCountConsumer = new FlinkKafkaConsumer(AppConfig.KAFKA_TOPIC_CLUB_NUMBER_EVENT_IN, new SimpleStringSchema(), props);
+//        FlinkKafkaProducer<String> clubNumberCountOut = new FlinkKafkaProducer(address, AppConfig.KAFKA_TOPIC_CLUB_NUMBER_EVENT_OUT, new SimpleStringSchema());
 
 //        DO.setStartFromEarliest(); // Flink从topic中最初的数据开始消费
         roomEventConsumer.setCommitOffsetsOnCheckpoints(true);
         lightConsumer.setCommitOffsetsOnCheckpoints(true);
-        catRoomConsumer.setCommitOffsetsOnCheckpoints(true);
-        clubNumberCountConsumer.setCommitOffsetsOnCheckpoints(true);
+//        catRoomConsumer.setCommitOffsetsOnCheckpoints(true);
+//        clubNumberCountConsumer.setCommitOffsetsOnCheckpoints(true);
 //        AllWindowedStream allWindowedStream = env.addSource(DO).windowAll(TumblingEventTimeWindows.of(Time.seconds(5)));
 //        allWindowedStream.sum(0);
         DataStreamSource<String> roomEventStreamSource = env.addSource(roomEventConsumer);
-        DataStreamSource<String> catCountStreamSource = env.addSource(catRoomConsumer);
+//        DataStreamSource<String> catCountStreamSource = env.addSource(catRoomConsumer);
         DataStreamSource<String> lightStreamSource = env.addSource(lightConsumer);
-        DataStreamSource<String> clubNumberCountStreamSource = env.addSource(clubNumberCountConsumer);
+//        DataStreamSource<String> clubNumberCountStreamSource = env.addSource(clubNumberCountConsumer);
 
         roomEventStreamSource
                 .map(new RoomMapFun())
@@ -144,20 +138,20 @@ public class StreamApplication {
 //                .addSink(userActionOut).setParallelism(1);
 
         //分类下房间数统计
-        catCountStreamSource
-                .map(new CatCountMapFun())
-                .keyBy(t2 -> t2.f0)
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(2)))
-                .aggregate(new CatRoomCountAggFun(), new CatRoomCountProcessWindowFun())
-                .addSink(catRoomCountOut).setParallelism(1);
+//        catCountStreamSource
+//                .map(new CatCountMapFun())
+//                .keyBy(t2 -> t2.f0)
+//                .window(TumblingProcessingTimeWindows.of(Time.seconds(2)))
+//                .aggregate(new CatRoomCountAggFun(), new CatRoomCountProcessWindowFun())
+//                .addSink(catRoomCountOut).setParallelism(1);
 
         //俱乐部成员数统计
-        clubNumberCountStreamSource
-                .map(new ClubNumberCountMapFun())
-                .keyBy(t2 -> t2.f0)
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(2)))
-                .aggregate(new ClubNumberCountAggFun(), new ClubNumberCountProcessWindowFun())
-                .addSink(clubNumberCountOut).setParallelism(1);
+//        clubNumberCountStreamSource
+//                .map(new ClubNumberCountMapFun())
+//                .keyBy(t2 -> t2.f0)
+//                .window(TumblingProcessingTimeWindows.of(Time.seconds(2)))
+//                .aggregate(new ClubNumberCountAggFun(), new ClubNumberCountProcessWindowFun())
+//                .addSink(clubNumberCountOut).setParallelism(1);
         try {
             env.execute("oasis-flink-stream-1.0.0");
         } catch (Exception e) {
