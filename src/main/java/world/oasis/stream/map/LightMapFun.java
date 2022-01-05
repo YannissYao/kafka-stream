@@ -13,5 +13,4 @@ public class LightMapFun extends RichMapFunction<String, Tuple6<Integer, String,
         Tuple6<Integer, String, Integer, String, Double, Integer> obj = JsonMapper.INSTANCE.fromJson(s, Tuple6.class);
         return obj;
     }
-
 }
