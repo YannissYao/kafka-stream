@@ -16,9 +16,11 @@ import world.oasis.stream.aggFun.RoomAggFun;
 import world.oasis.stream.aggFun.RoomLightAggFun;
 import world.oasis.stream.map.LightMapFun;
 import world.oasis.stream.map.RoomMapFun;
+import world.oasis.stream.partitioner.DefaultPartition;
 import world.oasis.stream.processwindow.LightValProcessWindowFun;
 import world.oasis.stream.processwindow.RoomProcessWindowFun;
 
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -65,13 +67,19 @@ public class StreamApplication {
         // 表示一旦Flink处理程序被cancel后，会保留Checkpoint数据，以便根据实际需要恢复到指定的Checkpoint
         env.getCheckpointConfig().enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
 
+
+        Properties properties = new Properties();
+        properties.setProperty("bootstrap.servers", address);
         //房间事件
         FlinkKafkaConsumer<String> roomEventConsumer = new FlinkKafkaConsumer(AppConfig.KAFKA_TOPIC_ROOM_EVENT_IN, new SimpleStringSchema(), props);
-        FlinkKafkaProducer<String> roomEventOut = new FlinkKafkaProducer(address, AppConfig.KAFKA_TOPIC_ROOM_EVENT_OUT, new SimpleStringSchema());
+//        FlinkKafkaProducer<String> roomEventOut = new FlinkKafkaProducer(address, AppConfig.KAFKA_TOPIC_ROOM_EVENT_OUT, new SimpleStringSchema());
+        FlinkKafkaProducer<String> roomEventOut = new FlinkKafkaProducer(AppConfig.KAFKA_TOPIC_ROOM_EVENT_OUT, new SimpleStringSchema(), properties, Optional.of(new DefaultPartition()));
 
         //曝光值
         FlinkKafkaConsumer<String> lightConsumer = new FlinkKafkaConsumer(AppConfig.KAFKA_TOPIC_ROOM_LIGHT_IN, new SimpleStringSchema(), props);
-        FlinkKafkaProducer<String> lightOut = new FlinkKafkaProducer(address, AppConfig.KAFKA_TOPIC_ROOM_LIGHT_OUT, new SimpleStringSchema());
+//        FlinkKafkaProducer<String> lightOut = new FlinkKafkaProducer(address, AppConfig.KAFKA_TOPIC_ROOM_LIGHT_OUT, new SimpleStringSchema());
+        FlinkKafkaProducer<String> lightOut = new FlinkKafkaProducer(AppConfig.KAFKA_TOPIC_ROOM_LIGHT_OUT, new SimpleStringSchema(), properties, Optional.of(new DefaultPartition()));
+
 
         //用户行为数量输出
 //        FlinkKafkaProducer<String> userActionOut = new FlinkKafkaProducer<String>(address, AppConfig.KAFKA_TOPIC_USER_ACTION_OUT, new SimpleStringSchema());
@@ -84,9 +92,17 @@ public class StreamApplication {
 //        FlinkKafkaConsumer<String> clubNumberCountConsumer = new FlinkKafkaConsumer(AppConfig.KAFKA_TOPIC_CLUB_NUMBER_EVENT_IN, new SimpleStringSchema(), props);
 //        FlinkKafkaProducer<String> clubNumberCountOut = new FlinkKafkaProducer(address, AppConfig.KAFKA_TOPIC_CLUB_NUMBER_EVENT_OUT, new SimpleStringSchema());
 
+        //时间或数量触发的触发器
+        final String timeOrCountTopic = "timeOrCountTopic";
+        final String timeOrCountTopicOut = "timeOrCountTopicOut";
+        FlinkKafkaConsumer<String> timeOrCountConsumer = new FlinkKafkaConsumer(timeOrCountTopic, new SimpleStringSchema(), props);
+//        FlinkKafkaProducer<String> lightOut = new FlinkKafkaProducer(address, AppConfig.KAFKA_TOPIC_ROOM_LIGHT_OUT, new SimpleStringSchema());
+        FlinkKafkaProducer<String> timeOrCountOut = new FlinkKafkaProducer(timeOrCountTopicOut, new SimpleStringSchema(), properties, Optional.of(new DefaultPartition()));
+
 //        DO.setStartFromEarliest(); // Flink从topic中最初的数据开始消费
         roomEventConsumer.setCommitOffsetsOnCheckpoints(true);
         lightConsumer.setCommitOffsetsOnCheckpoints(true);
+        timeOrCountConsumer.setCommitOffsetsOnCheckpoints(true);
 //        catRoomConsumer.setCommitOffsetsOnCheckpoints(true);
 //        clubNumberCountConsumer.setCommitOffsetsOnCheckpoints(true);
 //        AllWindowedStream allWindowedStream = env.addSource(DO).windowAll(TumblingEventTimeWindows.of(Time.seconds(5)));
@@ -94,6 +110,7 @@ public class StreamApplication {
         DataStreamSource<String> roomEventStreamSource = env.addSource(roomEventConsumer);
 //        DataStreamSource<String> catCountStreamSource = env.addSource(catRoomConsumer);
         DataStreamSource<String> lightStreamSource = env.addSource(lightConsumer);
+        DataStreamSource<String> timeOrCountSource = env.addSource(timeOrCountConsumer);
 //        DataStreamSource<String> clubNumberCountStreamSource = env.addSource(clubNumberCountConsumer);
 
         roomEventStreamSource
@@ -109,7 +126,7 @@ public class StreamApplication {
                 .keyBy(tuple6 -> tuple6.f1)
 //                //.countWindow(1)  //窗口填满1个开始计算
 //                .window(GlobalWindows.create())
-                .window(TumblingProcessingTimeWindows.of(Time.seconds(2)))//窗口大小
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(3)))//窗口大小
 //                .window(SlidingProcessingTimeWindows.of(Time.days(3),Time.seconds(10)))//窗口大小
                 .aggregate(new RoomAggFun(), new RoomProcessWindowFun())
 //                .print();
@@ -123,6 +140,15 @@ public class StreamApplication {
                 .window(TumblingProcessingTimeWindows.of(Time.seconds(10)))
                 .aggregate(new RoomLightAggFun(), new LightValProcessWindowFun())
                 .addSink(lightOut).setParallelism(1);
+
+        //时间或者数量满足窗口
+//        timeOrCountSource
+////                .map(new TimeOrCountMapFun())
+////                .keyBy(s -> s)
+//                .windowAll(GlobalWindows.create())
+//                .trigger(new CountOrTimeTrigger<>(2, 60 * 1000))
+//                .aggregate(new TimeAndCountAggFun(), new TimeAndCountProcessWindowFun())
+//                .addSink(timeOrCountOut).setParallelism(1);
 
         //行为标签
 //        lightStreamSource
